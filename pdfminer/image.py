@@ -74,8 +74,9 @@ class ImageWriter:
 
         is_jbig2 = self.is_jbig2_image(image)
         ext = self._get_image_extension(image, width, height, is_jbig2)
-        name, path = self._create_unique_image_name(self.outdir,
-                                                    image.name, ext)
+
+        name = image.name + ext
+        path = os.path.join(self.outdir, name)
 
         fp = open(path, 'wb')
         if ext == '.jpg':
@@ -152,14 +153,3 @@ class ImageWriter:
         else:
             ext = '.%d.%dx%d.img' % (image.bits, width, height)
         return ext
-
-    @staticmethod
-    def _create_unique_image_name(dirname, image_name, ext):
-        name = image_name + ext
-        path = os.path.join(dirname, name)
-        img_index = 0
-        while os.path.exists(path):
-            name = '%s.%d%s' % (image_name, img_index, ext)
-            path = os.path.join(dirname, name)
-            img_index += 1
-        return name, path
