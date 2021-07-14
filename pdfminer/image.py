@@ -78,54 +78,55 @@ class ImageWriter:
         name = image.name + ext
         path = os.path.join(self.outdir, name)
 
-        fp = open(path, 'wb')
-        if ext == '.jpg':
-            raw_data = image.stream.get_rawdata()
-            if LITERAL_DEVICE_CMYK in image.colorspace:
-                from PIL import Image
-                from PIL import ImageChops
-                ifp = BytesIO(raw_data)
-                i = Image.open(ifp)
-                i = ImageChops.invert(i)
-                i = i.convert('RGB')
-                i.save(fp, 'JPEG')
-            else:
-                fp.write(raw_data)
-        elif is_jbig2:
-            input_stream = BytesIO()
-            input_stream.write(image.stream.get_data())
-            input_stream.seek(0)
-            reader = JBIG2StreamReader(input_stream)
-            segments = reader.get_segments()
+        if not os.path.exists(path):
+            fp = open(path, 'wb')
+            if ext == '.jpg':
+                raw_data = image.stream.get_rawdata()
+                if LITERAL_DEVICE_CMYK in image.colorspace:
+                    from PIL import Image
+                    from PIL import ImageChops
+                    ifp = BytesIO(raw_data)
+                    i = Image.open(ifp)
+                    i = ImageChops.invert(i)
+                    i = i.convert('RGB')
+                    i.save(fp, 'JPEG')
+                else:
+                    fp.write(raw_data)
+            elif is_jbig2:
+                input_stream = BytesIO()
+                input_stream.write(image.stream.get_data())
+                input_stream.seek(0)
+                reader = JBIG2StreamReader(input_stream)
+                segments = reader.get_segments()
 
-            writer = JBIG2StreamWriter(fp)
-            writer.write_file(segments)
-        elif image.bits == 1:
-            bmp = BMPWriter(fp, 1, width, height)
-            data = image.stream.get_data()
-            i = 0
-            width = (width+7)//8
-            for y in range(height):
-                bmp.write_line(y, data[i:i+width])
-                i += width
-        elif image.bits == 8 and LITERAL_DEVICE_RGB in image.colorspace:
-            bmp = BMPWriter(fp, 24, width, height)
-            data = image.stream.get_data()
-            i = 0
-            width = width*3
-            for y in range(height):
-                bmp.write_line(y, data[i:i+width])
-                i += width
-        elif image.bits == 8 and LITERAL_DEVICE_GRAY in image.colorspace:
-            bmp = BMPWriter(fp, 8, width, height)
-            data = image.stream.get_data()
-            i = 0
-            for y in range(height):
-                bmp.write_line(y, data[i:i+width])
-                i += width
-        else:
-            fp.write(image.stream.get_data())
-        fp.close()
+                writer = JBIG2StreamWriter(fp)
+                writer.write_file(segments)
+            elif image.bits == 1:
+                bmp = BMPWriter(fp, 1, width, height)
+                data = image.stream.get_data()
+                i = 0
+                width = (width+7)//8
+                for y in range(height):
+                    bmp.write_line(y, data[i:i+width])
+                    i += width
+            elif image.bits == 8 and LITERAL_DEVICE_RGB in image.colorspace:
+                bmp = BMPWriter(fp, 24, width, height)
+                data = image.stream.get_data()
+                i = 0
+                width = width*3
+                for y in range(height):
+                    bmp.write_line(y, data[i:i+width])
+                    i += width
+            elif image.bits == 8 and LITERAL_DEVICE_GRAY in image.colorspace:
+                bmp = BMPWriter(fp, 8, width, height)
+                data = image.stream.get_data()
+                i = 0
+                for y in range(height):
+                    bmp.write_line(y, data[i:i+width])
+                    i += width
+            else:
+                fp.write(image.stream.get_data())
+            fp.close()
         return name
 
     @staticmethod
