@@ -67,6 +67,9 @@ class ImageWriter:
         self.outdir = outdir
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
+
+        self.written_images = set()
+
         return
 
     def export_image(self, image):
@@ -75,8 +78,8 @@ class ImageWriter:
         is_jbig2 = self.is_jbig2_image(image)
         ext = self._get_image_extension(image, width, height, is_jbig2)
 
-        name = image.name + ext
-        path = os.path.join(self.outdir, name)
+        name, path = self._create_unique_image_name(self.outdir,
+                                                    image.name, ext)
 
         if not os.path.exists(path):
             fp = open(path, 'wb')
@@ -154,3 +157,17 @@ class ImageWriter:
         else:
             ext = '.%d.%dx%d.img' % (image.bits, width, height)
         return ext
+
+    def _create_unique_image_name(self, dirname, image_name, ext):
+        name = image_name + ext
+        path = os.path.join(dirname, name)
+        img_index = 0
+
+        while path in self.written_images:
+            name = '%s.%d%s' % (image_name, img_index, ext)
+            path = os.path.join(dirname, name)
+            img_index += 1
+
+        self.written_images.add(path)
+
+        return name, path
