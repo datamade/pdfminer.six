@@ -7,7 +7,9 @@ from .jbig2 import JBIG2StreamReader, JBIG2StreamWriter
 from .pdfcolor import LITERAL_DEVICE_CMYK
 from .pdfcolor import LITERAL_DEVICE_GRAY
 from .pdfcolor import LITERAL_DEVICE_RGB
-from .pdftypes import LITERALS_DCT_DECODE, LITERALS_JBIG2_DECODE
+from .pdftypes import (LITERALS_DCT_DECODE,
+                       LITERALS_JBIG2_DECODE,
+                       LITERALS_JPX_DECODE)
 
 
 def align32(x):
@@ -67,9 +69,6 @@ class ImageWriter:
         self.outdir = outdir
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
-
-        self.written_images = set()
-
         return
 
     def export_image(self, image):
@@ -77,12 +76,11 @@ class ImageWriter:
 
         is_jbig2 = self.is_jbig2_image(image)
         ext = self._get_image_extension(image, width, height, is_jbig2)
-
         name, path = self._create_unique_image_name(self.outdir,
                                                     image.name, ext)
 
-        if not os.path.exists(path):
-            fp = open(path, 'wb')
+        if not os.path.exists(path):        
+        fp = open(path, 'wb')
             if ext == '.jpg':
                 raw_data = image.stream.get_rawdata()
                 if LITERAL_DEVICE_CMYK in image.colorspace:
@@ -95,6 +93,12 @@ class ImageWriter:
                     i.save(fp, 'JPEG')
                 else:
                     fp.write(raw_data)
+            elif ext == '.jp2':
+                from PIL import Image
+                raw_data = image.stream.get_rawdata()
+                ifp = BytesIO(raw_data)
+                i = Image.open(ifp)
+                i.save(fp, 'JPEG2000')
             elif is_jbig2:
                 input_stream = BytesIO()
                 input_stream.write(image.stream.get_data())
@@ -147,6 +151,8 @@ class ImageWriter:
         filters = image.stream.get_filters()
         if len(filters) == 1 and filters[0][0] in LITERALS_DCT_DECODE:
             ext = '.jpg'
+        elif len(filters) == 1 and filters[0][0] in LITERALS_JPX_DECODE:
+            ext = '.jp2'
         elif is_jbig2:
             ext = '.jb2'
         elif (image.bits == 1 or
@@ -158,16 +164,13 @@ class ImageWriter:
             ext = '.%d.%dx%d.img' % (image.bits, width, height)
         return ext
 
-    def _create_unique_image_name(self, dirname, image_name, ext):
+    @staticmethod
+    def _create_unique_image_name(dirname, image_name, ext):
         name = image_name + ext
         path = os.path.join(dirname, name)
         img_index = 0
-
-        while path in self.written_images:
+        while os.path.exists(path):
             name = '%s.%d%s' % (image_name, img_index, ext)
             path = os.path.join(dirname, name)
             img_index += 1
-
-        self.written_images.add(path)
-
         return name, path
