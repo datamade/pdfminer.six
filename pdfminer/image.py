@@ -69,6 +69,7 @@ class ImageWriter:
         self.outdir = outdir
         if not os.path.exists(self.outdir):
             os.makedirs(self.outdir)
+        self.seen_files = set()
         return
 
     def export_image(self, image):
@@ -168,13 +169,13 @@ class ImageWriter:
             ext = '.%d.%dx%d.img' % (image.bits, width, height)
         return ext
 
-    @staticmethod
-    def _create_unique_image_name(dirname, image_name, ext):
+    def _create_unique_image_name(self, dirname, image_name, ext):
         name = image_name + ext
         path = os.path.join(dirname, name)
         img_index = 0
-        while os.path.exists(path):
+        while path in self.seen_files:
             name = '%s.%d%s' % (image_name, img_index, ext)
             path = os.path.join(dirname, name)
             img_index += 1
+        self.seen_files.add(path)
         return name, path
