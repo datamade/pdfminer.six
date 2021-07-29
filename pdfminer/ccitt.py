@@ -13,7 +13,9 @@
 
 import sys
 import array
+import logging
 
+logger = logging.getLogger(__name__)
 
 def get_bytes(data):
     yield from data
@@ -549,7 +551,8 @@ def ccittfaxdecode(data, params):
     if K == -1:
         parser = CCITTFaxDecoder(cols, bytealign=bytealign, reversed=reversed)
     else:
-        raise ValueError(K)
+        logger.warning('Invalid value of K for CCITTFaxDecode, cannot parse')
+        return b''
     parser.feedbytes(data)
     return parser.close()
 
